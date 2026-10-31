@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    Player spawn = player;
     bool running = true;
     while (running)
     {
@@ -137,6 +138,12 @@ int main(int argc, char *argv[])
                             player.y = newY;
                             player.facing = dir;     
                             //then face the way we moved
+                        }
+                        else
+                        {
+                            //off the edge/ Empty tile = we fall so back to the start, to be replaced with life
+                            std::cout << "Fell!" << std::endl;
+                            player = spawn;
                         }
                     }
                     break;
