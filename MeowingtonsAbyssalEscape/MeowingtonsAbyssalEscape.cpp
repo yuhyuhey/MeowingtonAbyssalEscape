@@ -30,12 +30,34 @@ struct Player
     int x;
     int y;
     Direction facing;
+    bool holdingBlock;
 };
 
 const int tileSize = 9;                          //one tile is 9 x 9 pixels
 const int gridSize = 16;                         //16 x 16 tiles
 const int logSize = tileSize * gridSize;         //144 x 144 pixels in total 
 const int windowScale = 4;                       //window is 4x bigger = 576 x 576
+
+//how much x and y change when facing each Direction (same order as the enum Up, Right, Down, Left)
+const int dirX[4] = { 0, 1, 0, -1 };
+const int dirY[4] = { -1, 0, 1, 0 };
+
+//builds the level, We call this again after a fall to put every block back for now.
+void loadLevel(BlockType grid[gridSize][gridSize])
+{
+    for (int y = 0; y < gridSize; y++)
+    {
+        for (int x = 0; x < gridSize; x++)
+        {
+            grid[y][x] = BlockType::Empty;
+        }
+    }
+    grid[8][1] = BlockType::Start;
+    grid[8][2] = BlockType::Active;
+    grid[8][3] = BlockType::Active;
+    grid[9][3] = BlockType::Active;
+    grid[8][7] = BlockType::End;
+}
 
 
 
@@ -73,14 +95,10 @@ int main(int argc, char *argv[])
     SDL_SetRenderLogicalPresentation(state.renderer, logSize, logSize, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
 
     BlockType grid[gridSize][gridSize] = {};       //gridSize = 16 = 16 x 16 
-    grid[8][1] = BlockType::Start;
-    grid[8][2] = BlockType::Active;
-    grid[8][3] = BlockType::Active;
-    grid[9][3] = BlockType::Active;
-    grid[8][7] = BlockType::End;
+    loadLevel(grid);
 
     //the player spawns on the start tile
-    Player player = { 0, 0, Direction::Right };
+    Player player = { 0, 0, Direction::Right, false };
     for (int y = 0; y < gridSize; y++)
     {
         for (int x = 0; x < gridSize; x++)
@@ -122,6 +140,33 @@ int main(int argc, char *argv[])
                     case SDLK_D: case SDLK_RIGHT: dx = 1;  dir = Direction::Right; break;
                     case SDLK_S: case SDLK_DOWN:  dy = 1;  dir = Direction::Down;  break;
                     case SDLK_A: case SDLK_LEFT:  dx = -1; dir = Direction::Left;  break;
+                    case SDLK_Z:
+                    {
+                        //the tile in front of the player
+                        int frontX = player.x + dirX[static_cast<int>(player.facing)];
+                        int frontY = player.y + dirY[static_cast<int>(player.facing)];
+                        bool frontInside = frontX >= 0 && frontX < gridSize && frontY >= 0 && frontY < gridSize;
+
+                        if (frontInside)
+                        {
+                            //pick up
+                            BlockType front = grid[frontY][frontX];
+                            if (!player.holdingBlock && (front == BlockType::Active || front == BlockType::Start))
+                            {
+
+                                grid[frontY][frontX] = BlockType::Empty;     
+                                player.holdingBlock = true;
+                            }
+                            //place
+                            else if (player.holdingBlock && front == BlockType::Empty)
+                            {
+                                grid[frontY][frontX] = BlockType::Active;    
+                                player.holdingBlock = false;
+                            }
+                        }
+                        break;
+                    }
+
                     }
 
                     if (dx != 0 || dy != 0)
@@ -143,7 +188,10 @@ int main(int argc, char *argv[])
                         {
                             //off the edge/ Empty tile = we fall so back to the start, to be replaced with life
                             std::cout << "Fell!" << std::endl;
-                            player = spawn;
+                            //every block goes back
+                            loadLevel(grid);         
+                            //spawn has holdingBlock = false
+                            player = spawn;          
                         }
                     }
                     break;
@@ -197,6 +245,15 @@ int main(int argc, char *argv[])
         SDL_SetRenderDrawColor(state.renderer, 255, 0, 0, 255);
         SDL_FRect marker = { markX, markY, 3, 3 };
         SDL_RenderFillRect(state.renderer, &marker);
+
+        //a small white block on the player to show its held, will add this to hud? to be mentioned in user feedback!
+        if (player.holdingBlock)    
+        {
+            SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+            SDL_FRect held = { px + 3, py + 3, 3, 3 };
+            SDL_RenderFillRect(state.renderer, &held);
+        }
+
         SDL_RenderPresent(state.renderer);
     }
 
