@@ -1,5 +1,8 @@
 #include <iostream>
+#include <fstream>
+#include <string>
 #include "SDL3/SDL.h"
+
 
 struct SDLState 
 {
@@ -45,9 +48,12 @@ const int logHeight = logSize + hudHeight;       //144 x 153 pixels in total
 const int dirX[4] = { 0, 1, 0, -1 };
 const int dirY[4] = { -1, 0, 1, 0 };
 
-//builds the level, We call this again after a fall to put every block back for now.
-void loadLevel(BlockType grid[gridSize][gridSize])
+bool loadLevel(BlockType grid[gridSize][gridSize], int level)
 {
+    std::ifstream file("levels/level_" + std::to_string(level) + ".txt");
+    if (!file) return false;
+
+    //start with everything empty
     for (int y = 0; y < gridSize; y++)
     {
         for (int x = 0; x < gridSize; x++)
@@ -55,11 +61,40 @@ void loadLevel(BlockType grid[gridSize][gridSize])
             grid[y][x] = BlockType::Empty;
         }
     }
-    grid[8][1] = BlockType::Start;
-    grid[8][2] = BlockType::Active;
-    grid[8][3] = BlockType::Active;
-    grid[9][3] = BlockType::Active;
-    grid[8][7] = BlockType::End;
+
+    //then read one line of the file per row of the grid
+    std::string line;
+    for (int y = 0; y < gridSize && std::getline(file, line); y++)
+    {
+        for (int x = 0; x < gridSize && x < static_cast<int>(line.size()); x++)
+        {
+            switch (line[x])
+            {
+            case '#': grid[y][x] = BlockType::Active; break;
+            case 'S': grid[y][x] = BlockType::Start;  break;
+            case 'E': grid[y][x] = BlockType::End;    break;
+            }
+        }
+    }
+    return true;
+}
+
+//the player spawns on the start tile
+Player findSpawn(BlockType grid[gridSize][gridSize])
+{
+    Player spawn = { 0, 0, Direction::Right, false };
+    for (int y = 0; y < gridSize; y++)
+    {
+        for (int x = 0; x < gridSize; x++)
+        {
+            if (grid[y][x] == BlockType::Start)
+            {
+                spawn.x = x;
+                spawn.y = y;
+            }
+        }
+    }
+    return spawn;
 }
 
 
@@ -98,27 +133,20 @@ int main(int argc, char *argv[])
     //int logH = 320;
     SDL_SetRenderLogicalPresentation(state.renderer, logSize, logHeight, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
 
+    int currentLevel = 1;
     //gridSize = 16 = 16 x 16 
-    BlockType grid[gridSize][gridSize] = {};       
-    loadLevel(grid);
-
-    //the player spawns on the start tile
-    Player player = { 0, 0, Direction::Right, false };
-    for (int y = 0; y < gridSize; y++)
+    BlockType grid[gridSize][gridSize] = {};
+    if (!loadLevel(grid, currentLevel))
     {
-        for (int x = 0; x < gridSize; x++)
-        {
-            if (grid[y][x] == BlockType::Start)
-            {
-                player.x = x;
-                player.y = y;
-            }
-        }
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Couldn't open levels/level_1.txt", state.window);
+        cleanup(state);
+        return 1;
     }
 
-    Player spawn = player;
+    Player player = findSpawn(grid);
     int lives = maxLives;
     bool resetLevel = false;
+    bool levelComplete = false;
     bool running = true;
     while (running)
     {
@@ -135,7 +163,7 @@ int main(int argc, char *argv[])
                 case SDL_EVENT_KEY_DOWN:
                 {
                     //ignore held keys, and keys pressed after a fall
-                    if (event.key.repeat || resetLevel) break;
+                    if (event.key.repeat || resetLevel || levelComplete) break;
 
                     //work out which way the key wants to go
                     int dx = 0;
@@ -187,8 +215,10 @@ int main(int argc, char *argv[])
                             //move first
                             player.x = newX;         
                             player.y = newY;
-                            player.facing = dir;     
+                            player.facing = dir;
                             //then face the way we moved
+                            if (grid[newY][newX] == BlockType::End) levelComplete = true;
+                            
                         }
                         else
                         {
@@ -209,14 +239,26 @@ int main(int argc, char *argv[])
             if (lives <= 0)
             {
                 std::cout << "Game over!" << std::endl;
-                lives = maxLives;
-                // todo: return to menu here!
+                lives = maxLives;               //for now we just start again. A menu comes later
+                currentLevel = 1;
             }
-            //every block goes back
-            loadLevel(grid);            
-            //spawn has holdingBlock = false
-            player = spawn;             
+            loadLevel(grid, currentLevel);      //every block goes back
+            player = findSpawn(grid);           //spawn has holdingBlock = false 
+        }
 
+        //reaching the end loads the next level. Lives carry over
+        if (levelComplete)
+        {
+            levelComplete = false;
+            currentLevel++;
+            if (!loadLevel(grid, currentLevel))     //no next file, so that was the last level, will test this
+            {
+                std::cout << "You made it home!" << std::endl;
+                lives = maxLives;
+                currentLevel = 1;
+                loadLevel(grid, currentLevel);
+            }
+            player = findSpawn(grid);
         }
 
         SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 255);
