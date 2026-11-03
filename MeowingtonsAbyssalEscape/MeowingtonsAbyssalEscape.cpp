@@ -28,6 +28,14 @@ enum class Direction
     Left 
 };
 
+enum class GameState
+{
+    Menu,
+    Playing,
+    GameOver,
+    Win
+};
+
 struct Player
 {
     int x;
@@ -97,6 +105,13 @@ Player findSpawn(BlockType grid[gridSize][gridSize])
     return spawn;
 }
 
+//draws text centred across the screen using sdl debug text, docs mention this has limitations, but they are look fine for now. if deploying later on i'll use sdl ttf for example.
+void drawCentered(SDL_Renderer* renderer, float y, const char* text)
+{   
+    //each letter 8 pixels wide
+    float width = static_cast<float>(SDL_strlen(text)) * 8;
+    SDL_RenderDebugText(renderer, (logSize - width) / 2, y, text);
+}
 
 
 int main(int argc, char *argv[])
@@ -147,6 +162,7 @@ int main(int argc, char *argv[])
     int lives = maxLives;
     bool resetLevel = false;
     bool levelComplete = false;
+    GameState gameState = GameState::Menu;
     bool running = true;
     while (running)
     {
@@ -162,8 +178,37 @@ int main(int argc, char *argv[])
                 }
                 case SDL_EVENT_KEY_DOWN:
                 {
-                    //ignore held keys, and keys pressed after a fall
-                    if (event.key.repeat || resetLevel || levelComplete) break;
+                    //ignore held keys
+                    if (event.key.repeat) break;
+
+                    //menu, enter starts a new game, escape quits - text/indication add later/user feedback
+                    if (gameState == GameState::Menu)
+                    {
+                        if (event.key.key == SDLK_RETURN)
+                        {
+                            lives = maxLives;
+                            currentLevel = 1;
+                            loadLevel(grid, currentLevel);
+                            player = findSpawn(grid);
+                            gameState = GameState::Playing;
+                        }
+                        else if (event.key.key == SDLK_ESCAPE)
+                        // later to have continue and saving uses
+                        {
+                            running = false;
+                        }
+                        break;
+                    }
+
+                    //game over and win screens, enter goes back to the menu
+                    if (gameState == GameState::GameOver || gameState == GameState::Win)
+                    {
+                        if (event.key.key == SDLK_RETURN) gameState = GameState::Menu;
+                        break;
+                    }
+
+                    //playing, ignore keys pressed after a fall or a win
+                    if (resetLevel || levelComplete) break;
 
                     //work out which way the key wants to go
                     int dx = 0;
@@ -238,12 +283,13 @@ int main(int argc, char *argv[])
             lives--;
             if (lives <= 0)
             {
-                std::cout << "Game over!" << std::endl;
-                lives = maxLives;               //for now we just start again. A menu comes later
-                currentLevel = 1;
+                gameState = GameState::GameOver;
             }
-            loadLevel(grid, currentLevel);      //every block goes back
-            player = findSpawn(grid);           //spawn has holdingBlock = false 
+            else
+            {
+                loadLevel(grid, currentLevel);      //every block goes back
+                player = findSpawn(grid);           //spawn has holdingBlock = false 
+            }
         }
 
         //reaching the end loads the next level. Lives carry over
@@ -253,16 +299,54 @@ int main(int argc, char *argv[])
             currentLevel++;
             if (!loadLevel(grid, currentLevel))     //no next file, so that was the last level, will test this
             {
-                std::cout << "You made it home!" << std::endl;
-                lives = maxLives;
-                currentLevel = 1;
-                loadLevel(grid, currentLevel);
+                gameState = GameState::Win;
             }
-            player = findSpawn(grid);
+            else
+            {
+                player = findSpawn(grid);
+            }
         }
 
         SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 255);
         SDL_RenderClear(state.renderer);
+
+        //menu, game over and win screens are just texx - draw it, then skip the level drawing
+        if (gameState != GameState::Playing)
+        {
+            if (gameState == GameState::Menu)
+            {
+                SDL_SetRenderDrawColor(state.renderer, 255, 0, 0, 255);
+                drawCentered(state.renderer, 20, "MEOWINGTON'S");
+                drawCentered(state.renderer, 30, "ABYSSAL ESCAPE");
+                drawCentered(state.renderer, 40, "LALALALA");
+
+                SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+                drawCentered(state.renderer, 70, "ENTER = NEW GAME");
+                drawCentered(state.renderer, 80, "ESC = QUIT");
+
+                SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+                drawCentered(state.renderer, 110, "WASD = MOVE");
+                drawCentered(state.renderer, 120, "Z = GRAB / PLACE");
+                drawCentered(state.renderer, 130, "R = RESET LEVEL");
+            }
+            else if (gameState == GameState::GameOver)
+            {
+                SDL_SetRenderDrawColor(state.renderer, 255, 0, 0, 255);
+                drawCentered(state.renderer, 50, "GAME OVER");
+                SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+                drawCentered(state.renderer, 100, "ENTER = MENU");
+            }
+            else
+            {
+                SDL_SetRenderDrawColor(state.renderer, 0, 255, 0, 255);
+                drawCentered(state.renderer, 50, "YOU MADE IT HOME!");
+                SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+                drawCentered(state.renderer, 100, "ENTER = MENU");
+            }
+
+            SDL_RenderPresent(state.renderer);
+            continue;       
+        }
 
         // draw every tile
         for (int y = 0; y < gridSize; y++)
