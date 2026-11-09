@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
         {
             levelComplete = false;
             currentLevel++;
-            if (!loadLevel(grid, currentLevel))     //no next file, so that was the last level, will test this
+            if (!loadLevel(grid, currentLevel))
             {
                 gameState = GameState::Win;
             }
@@ -406,19 +406,19 @@ int main(int argc, char *argv[])
             if (gameState == GameState::Menu)
             {
                 SDL_SetRenderDrawColor(state.renderer, 255, 0, 0, 255);
-                drawCentered(state.renderer, 20, "MEOWINGTON'S");
-                drawCentered(state.renderer, 30, "ABYSSAL ESCAPE");
-                drawCentered(state.renderer, 40, "LALALALA");
+                drawCentered(state.renderer, 15, "MEOWINGTON'S");
+                drawCentered(state.renderer, 25, "ABYSSAL ESCAPE");
 
                 SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-                drawCentered(state.renderer, 70, "ENTER = NEW GAME");
-                if (saveExists()) drawCentered(state.renderer, 80, "C = CONTINUE");
-                drawCentered(state.renderer, 90, "ESC = QUIT");
+                drawCentered(state.renderer, 50, "ENTER = NEW GAME");
+                if (saveExists()) drawCentered(state.renderer, 60, "C = CONTINUE");
+                drawCentered(state.renderer, 70, "ESC = QUIT");
 
-                SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-                drawCentered(state.renderer, 110, "WASD = MOVE");
-                drawCentered(state.renderer, 120, "Z = GRAB / PLACE");
-                drawCentered(state.renderer, 130, "R = RESET LEVEL");
+                drawCentered(state.renderer, 90, "WASD = MOVE");
+                drawCentered(state.renderer, 100, "Z = GRAB / PLACE");
+                SDL_SetRenderDrawColor(state.renderer, 255, 200, 0, 255);
+                drawCentered(state.renderer, 120, "R = RESET LEVEL &");
+                drawCentered(state.renderer, 130, "FALL = -1 LIFE");
             }
             else if (gameState == GameState::GameOver)
             {
@@ -448,8 +448,7 @@ int main(int argc, char *argv[])
                 {
                 case BlockType::Empty:  SDL_SetRenderDrawColor(state.renderer, 0, 0, 100, 255);   break;
                 case BlockType::Active: SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255); break;
-                //start is a different colour for debugging, but when game is finalised this to be changed to active
-                case BlockType::Start:  SDL_SetRenderDrawColor(state.renderer, 0, 0,  0, 255);  break; 
+                case BlockType::Start:  SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255); break; // - UT
                 case BlockType::End:    SDL_SetRenderDrawColor(state.renderer, 0, 255, 0, 255); break;
                 }
 
@@ -484,13 +483,13 @@ int main(int argc, char *argv[])
         SDL_FRect marker = { markX, markY, 3, 3 };
         SDL_RenderFillRect(state.renderer, &marker);
 
-        //a small white block on the player to show its held, will add this to hud? to be mentioned in user feedback!
+        /*a small white block on the player to show its held, will add this to hud ? to be mentioned in user feedback! - Moved to hud
         if (player.holdingBlock)    
         {
             SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
             SDL_FRect held = { px + 3, py + 3, 3, 3 };
             SDL_RenderFillRect(state.renderer, &held);
-        }
+        }*/
 
         // HUD DRAWING AND COLOURING!!
         SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 255);
@@ -502,6 +501,22 @@ int main(int argc, char *argv[])
         {
             SDL_FRect heart = { static_cast<float>(3 + i * 8), static_cast<float>(logSize + 2), 5, 5 };
             SDL_RenderFillRect(state.renderer, &heart);
+        }
+
+        //the level number in the middle of the HUD - UT
+        std::string levelText = "LV " + std::to_string(currentLevel);
+        SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+        drawCentered(state.renderer, logSize + 0.5f, levelText.c_str());
+
+        //block slot on the right of the HUD, an empty box that gets a white block in it while you are holding one - moved from character - UT
+        SDL_FRect slot = { static_cast<float>(logSize - 11), static_cast<float>(logSize + 1), 7, 7 };
+        SDL_SetRenderDrawColor(state.renderer, 120, 120, 120, 255);
+        SDL_RenderRect(state.renderer, &slot);
+        if (player.holdingBlock)
+        {
+            SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
+            SDL_FRect held = { slot.x + 1, slot.y + 1, 5, 5 };
+            SDL_RenderFillRect(state.renderer, &held);
         }
 
         SDL_RenderPresent(state.renderer);
