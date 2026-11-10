@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <cstdio>
+#include <queue>
 #include "SDL3/SDL.h"
 
 
@@ -182,6 +183,31 @@ void drawCentered(SDL_Renderer* renderer, float y, const std::string& text)
     SDL_RenderDebugText(renderer, (logSize - width) / 2, y, text.c_str());
 }
 
+//things that happen in the game that something else needs to react to.they go into the queue when they happen, and PlayState::update reads them back out
+enum class EventType
+{
+    PlayerFell,         //stepped onto an empty tile or off the edge
+    LevelReset,         //pressed R
+    LevelComplete       //stepped onto the end tile
+};
+
+struct EventQueue
+{
+    std::queue<EventType> events;
+
+    void push(EventType type) { events.push(type); }
+    bool empty() const { return events.empty(); }
+
+    //takes the oldest event out of the queue. returns false when there are none left
+    bool poll(EventType& type)
+    {
+        if (events.empty()) return false;
+        type = events.front();
+        events.pop();
+        return true;
+    }
+};
+
 //what the game is doing right now, each state handles its own keys, updates and draws itself,
 //and the loop in main just passes everything on to whichever state is current
 struct Game;
@@ -214,8 +240,7 @@ struct PlayState : State
     BlockType grid[gridSize][gridSize] = {};
     Player player = { 0, 0, Direction::Right, false };
     int lives = maxLives;
-    bool resetLevel = false;
-    bool levelComplete = false;
+    EventQueue events;
 
     PlayState(Game& g) : game(g) {}
 
@@ -306,7 +331,7 @@ bool PlayState::continueGame()
 void PlayState::handleEvent(const SDL_Event& event)
 {
     //playing, ignore keys pressed after a fall or a win
-    if (resetLevel || levelComplete) return;
+    if (!events.empty()) return;
 
     //work out which way the key wants to go
     int dx = 0;
@@ -344,7 +369,7 @@ void PlayState::handleEvent(const SDL_Event& event)
         }
         break;
     }
-    case SDLK_R: resetLevel = true; break;
+    case SDLK_R: events.push(EventType::LevelReset); break;
     case SDLK_ESCAPE:
         saveGame(currentLevel, lives, player, grid);
         //leaving a game in progress saves it, then back to the menu
@@ -365,49 +390,54 @@ void PlayState::handleEvent(const SDL_Event& event)
             player.y = newY;
             player.facing = dir;
             //then face the way we moved
-            if (grid[newY][newX] == BlockType::End) levelComplete = true;
+            if (grid[newY][newX] == BlockType::End) events.push(EventType::LevelComplete);
 
         }
         else
         {
             //off the edge / Empty tile = we fall
             std::cout << "Fell!" << std::endl;
-            resetLevel = true;
+            events.push(EventType::PlayerFell);
         }
     }
 }
 void PlayState::update()
 {
     //a fall or R costs a life, then the level starts again
-    if (resetLevel)
+    EventType type;
+    while (events.poll(type))
     {
-        resetLevel = false;
-        lives--;
-        if (lives <= 0)
+        switch (type)
         {
-            game.end.won = false;
-            game.current = &game.end;
-        }
-        else
-        {
-            loadLevel(grid, currentLevel);      //every block goes back
-            player = findSpawn(grid);           //spawn has holdingBlock = false 
-        }
-    }
+            //a fall or R costs a life, then the level starts again
+        case EventType::PlayerFell:
+        case EventType::LevelReset:
+            lives--;
+            if (lives <= 0)
+            {
+                game.end.won = false;
+                game.current = &game.end;
+            }
+            else
+            {
+                loadLevel(grid, currentLevel);      //every block goes back
+                player = findSpawn(grid);           //spawn has holdingBlock = false 
+            }
+            break;
 
-    //reaching the end loads the next level. Lives carry over
-    if (levelComplete)
-    {
-        levelComplete = false;
-        currentLevel++;
-        if (!loadLevel(grid, currentLevel))
-        {
-            game.end.won = true;
-            game.current = &game.end;
-        }
-        else
-        {
-            player = findSpawn(grid);
+            //reaching the end loads the next level. Lives carry over
+        case EventType::LevelComplete:
+            currentLevel++;
+            if (!loadLevel(grid, currentLevel))
+            {
+                game.end.won = true;
+                game.current = &game.end;
+            }
+            else
+            {
+                player = findSpawn(grid);
+            }
+            break;
         }
     }
 }
