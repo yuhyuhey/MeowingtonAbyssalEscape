@@ -129,7 +129,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LevelSave.cpp" />
     <ClCompile Include="MeowingtonsAbyssalEscape.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GameTypes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
