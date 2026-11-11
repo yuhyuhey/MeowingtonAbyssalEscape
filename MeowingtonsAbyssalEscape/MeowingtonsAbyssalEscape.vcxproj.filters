@@ -21,9 +21,15 @@
     <ClCompile Include="LevelSave.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="States.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="States.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
