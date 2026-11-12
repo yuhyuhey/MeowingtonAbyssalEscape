@@ -401,3 +401,10 @@ FodyWeavers.xsd
 *.sln.iml
 
 savegame.txt
+
+!**/SDL3/
+!**/SDL3/lib/
+!**/SDL3/lib/x64/
+!**/SDL3/lib/x64/*.lib
+!**/SDL3/lib/x64/*.dll
+
