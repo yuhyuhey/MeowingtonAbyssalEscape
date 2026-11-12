@@ -13,9 +13,12 @@ struct SDLState
 //things that happen in the game that something else needs to react to.they go into the queue when they happen, and PlayState::update reads them back out
 enum class EventType
 {
-    PlayerFell,         //stepped onto an empty tile or off the edge
-    LevelReset,         //pressed R
-    LevelComplete       //stepped onto the end tile
+    //stepped onto an empty tile or off the edge
+    PlayerFell,
+    //pressed R
+    LevelReset,
+    //stepped onto the end tile
+    LevelComplete
 };
 
 struct EventQueue

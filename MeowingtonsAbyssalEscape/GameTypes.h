@@ -25,13 +25,26 @@ struct Player
     bool holdingBlock;
 };
 
-const int tileSize = 9;                          //one tile is 9 x 9 pixels
-const int gridSize = 16;                         //16 x 16 tiles
-const int logSize = tileSize * gridSize;         //144 x 144 pixels in total 
-const int windowScale = 4;                       //window is 4x bigger = 576 x 576
-const int maxLives = 3;                          //overall max lives (will discuss in ut)
-const int hudHeight = tileSize;                  //a strip under the grid for lives
-const int logHeight = logSize + hudHeight;       //144 x 153 pixels in total
+//one tile is 9 x 9 pixels
+const int tileSize = 9;
+
+//16 x 16 tiles
+const int gridSize = 16;
+
+//144 x 144 pixels in total 
+const int logSize = tileSize * gridSize;
+
+//window is 4x bigger = 576 x 576
+const int windowScale = 4;
+
+//overall max lives (will discuss in ut)
+const int maxLives = 3;
+
+//a strip under the grid for lives
+const int hudHeight = tileSize;
+
+//144 x 153 pixels in total
+const int logHeight = logSize + hudHeight;
 
 //how much x and y change when facing each Direction (same order as the enum Up, Right, Down, Left)
 const int dirX[4] = { 0, 1, 0, -1 };

@@ -13,11 +13,11 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    //int width = 600;
-    //int height = 400;
     int windowW = logSize * windowScale;
     int windowH = logHeight * windowScale;
+
     state.window = SDL_CreateWindow("Meowington's Abyssal Escape", windowW, windowH, 0);
+
     if (!state.window)
     {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Error creating window", nullptr);
@@ -34,8 +34,6 @@ int main(int argc, char* argv[])
     }
 
     //configure the presentation
-    //int logW = 640;
-    //int logH = 320;
     SDL_SetRenderLogicalPresentation(state.renderer, logSize, logHeight, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
 
     Game game;

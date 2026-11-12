@@ -2,7 +2,7 @@
 #include <string>
 #include "States.h"
 
-//draws text centred across the screen using sdl debug text, docs mention this has limitations, but they are look fine for now. if deploying later on i'll use sdl ttf for example.
+//draws text centred across the screen using sdl debug text, sdl docs mention this has limitations, but these don't apply to this use case.
 void drawCentered(SDL_Renderer* renderer, float y, const std::string& text)
 {
     //each letter 8 pixels wide
@@ -12,7 +12,7 @@ void drawCentered(SDL_Renderer* renderer, float y, const std::string& text)
 
 void MenuState::handleEvent(const SDL_Event& event)
 {
-    //menu, enter starts a new game, escape quits - text/indication add later/user feedback
+    //menu - enter starts a new game, escape quits
     if (event.key.key == SDLK_RETURN)
     {
         game.play.startNewGame();
@@ -144,7 +144,7 @@ void PlayState::update()
     {
         switch (type)
         {
-            //a fall or R costs a life, then the level starts again
+             //a fall or R costs a life, then the level starts again
         case EventType::PlayerFell:
         case EventType::LevelReset:
             lives--;
@@ -155,8 +155,10 @@ void PlayState::update()
             }
             else
             {
-                loadLevel(grid, currentLevel);      //every block goes back
-                player = findSpawn(grid);           //spawn has holdingBlock = false 
+                //every block goes back
+                loadLevel(grid, currentLevel);
+                //spawn has holdingBlock = false
+                player = findSpawn(grid);   
             }
             break;
 
@@ -200,7 +202,7 @@ void PlayState::draw(SDLState& state)
             SDL_RenderFillRect(state.renderer, &tile);
         }
     }
-    //draw the player as an orange square with a red direction marker on the side it is facing - to visual update later
+    //draw the player as an orange square with a red direction marker on the side it is facing = the direction you can pick/place tiles
     float px = static_cast<float>(player.x * tileSize);
     float py = static_cast<float>(player.y * tileSize);
 
@@ -223,14 +225,6 @@ void PlayState::draw(SDLState& state)
     SDL_FRect marker = { markX, markY, 3, 3 };
     SDL_RenderFillRect(state.renderer, &marker);
 
-    /*a small white block on the player to show its held, will add this to hud ? to be mentioned in user feedback! - Moved to hud
-    if (player.holdingBlock)
-    {
-        SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
-        SDL_FRect held = { px + 3, py + 3, 3, 3 };
-        SDL_RenderFillRect(state.renderer, &held);
-    }*/
-
     // HUD DRAWING AND COLOURING!!
     SDL_SetRenderDrawColor(state.renderer, 0, 0, 0, 255);
     SDL_FRect hud = { 0, static_cast<float>(logSize), static_cast<float>(logSize), static_cast<float>(hudHeight) };
@@ -248,7 +242,7 @@ void PlayState::draw(SDLState& state)
     SDL_SetRenderDrawColor(state.renderer, 255, 255, 255, 255);
     drawCentered(state.renderer, logSize + 0.5f, levelText);
 
-    //block slot on the right of the HUD, an empty box that gets a white block in it while you are holding one - moved from character - UT
+    //block slot on the right of the HUD, an empty box that gets a white block in it while you are holding one
     SDL_FRect slot = { static_cast<float>(logSize - 11), static_cast<float>(logSize + 1), 7, 7 };
     SDL_SetRenderDrawColor(state.renderer, 120, 120, 120, 255);
     SDL_RenderRect(state.renderer, &slot);
